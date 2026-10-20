@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Lark Offline Player</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1e1e24; color: #fff; margin: 0; padding: 15px; box-sizing: border-box; }
+    .card { background: #2b2b36; border-radius: 10px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .title { font-size: 16px; font-weight: bold; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #64b5f6; }
+    .controls { display: flex; gap: 10px; align-items: center; justify-content: center; margin: 15px 0; }
+    button { background: #3d3d4e; border: none; color: #fff; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    button:hover { background: #505066; }
+    button.play-btn { background: #2196f3; font-weight: bold; padding: 8px 20px; }
+    .file-input-wrapper { text-align: center; margin-bottom: 15px; }
+    input[type="file"] { display: none; }
+    .custom-file-upload { background: #4caf50; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; display: inline-block; }
+    .playlist { max-height: 180px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border-top: 1px solid #3d3d4e; }
+    .playlist li { padding: 8px 10px; font-size: 13px; cursor: pointer; border-bottom: 1px solid #333342; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .playlist li:hover { background: #353545; }
+    .playlist li.active { color: #4caf50; font-weight: bold; background: #253329; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="file-input-wrapper">
+      <label class="custom-file-upload">
+        📂 Chọn bài hát từ máy
+        <input type="file" id="fileInput" accept="audio/*" multiple>
+      </label>
+    </div>
+
+    <div class="title" id="nowPlaying">Chưa có bài hát nào được chọn</div>
+
+    <audio id="audioElement"></audio>
+
+    <div class="controls">
+      <button onclick="prevTrack()">⏮ Lui</button>
+      <button class="play-btn" id="playBtn" onclick="togglePlay()">▶ Phát</button>
+      <button onclick="nextTrack()">Tới ⏭</button>
+    </div>
+
+    <ul class="playlist" id="playlist"></ul>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const audio = document.getElementById('audioElement');
+    const playBtn = document.getElementById('playBtn');
+    const nowPlaying = document.getElementById('nowPlaying');
+    const playlistEl = document.getElementById('playlist');
+
+    let playlist = [];
+    let currentIndex = 0;
+
+    fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      playlist = files.map(file => ({
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        url: URL.createObjectURL(file)
+      }));
+
+      renderPlaylist();
+      loadTrack(0);
+    });
+
+    function renderPlaylist() {
+      playlistEl.innerHTML = '';
+      playlist.forEach((track, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${index + 1}. ${track.name}`;
+        li.onclick = () => loadTrack(index, true);
+        if (index === currentIndex) li.classList.add('active');
+        playlistEl.appendChild(li);
+      });
+    }
+
+    function loadTrack(index, autoPlay = false) {
+      if (index < 0 || index >= playlist.length) return;
+      currentIndex = index;
+      audio.src = playlist[currentIndex].url;
+      nowPlaying.textContent = `Đang phát: ${playlist[currentIndex].name}`;
+      renderPlaylist();
+      if (autoPlay) playAudio();
+    }
+
+    function togglePlay() {
+      if (!audio.src) return;
+      if (audio.paused) {
+        playAudio();
+      } else {
+        audio.pause();
+        playBtn.textContent = '▶ Phát';
+      }
+    }
+
+    function playAudio() {
+      audio.play();
+      playBtn.textContent = '⏸ Tạm dừng';
+    }
+
+    function nextTrack() {
+      if (currentIndex < playlist.length - 1) {
+        loadTrack(currentIndex + 1, true);
+      } else {
+        loadTrack(0, true); // Lặp lại từ đầu danh sách
+      }
+    }
+
+    function prevTrack() {
+      if (currentIndex > 0) {
+        loadTrack(currentIndex - 1, true);
+      } else {
+        loadTrack(playlist.length - 1, true);
+      }
+    }
+
+    // Tự động chuyển bài khi hết nhạc
+    audio.addEventListener('ended', nextTrack);
+  </script>
+</body>
+</html>
